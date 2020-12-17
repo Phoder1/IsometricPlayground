@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
+public enum BuildingTypes { Purple, Flower, Tree}
 public class InputManager : MonoBehaviour
 {
     [SerializeField]
@@ -16,20 +17,26 @@ public class InputManager : MonoBehaviour
 
 
     private void Start() {
-        Debug.Log(tilemap.GetCellCenterLocal(Vector3Int.zero));
-        Debug.Log(grid.GetCellCenterLocal(Vector3Int.zero));
         tilemap.SetTile(Vector3Int.zero, purple);
     }
     // Update is called once per frame
     void Update()
     {
-        if (Input.GetKey(KeyCode.Mouse0)) {
-            Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-            mousePos.z = 0;
-            Vector3Int position = tilemap.WorldToCell(mousePos);
-            if (tilemap.HasTile(position) && tilemap.GetTile(position) != purple) {
-                Debug.Log("Tile!");
-                tilemap.SetTile(position, purple);
+        if (Input.GetKeyDown(KeyCode.Mouse0)) {
+            if (Input.GetKey(KeyCode.LeftShift)) {
+                RaycastHit2D hit = Physics2D.Raycast(Camera.main.ScreenToWorldPoint(Input.mousePosition),Vector2.zero);
+                if(hit.collider != null) {
+                    Debug.Log("HIT!");
+                }
+            }
+            else {
+                Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+                mousePos.z = 0;
+                Vector3Int position = tilemap.WorldToCell(mousePos);
+                if (tilemap.HasTile(position) && tilemap.GetTile(position) != purple) {
+                    Debug.Log("Tile!");
+                    tilemap.SetTile(position, purple);
+                }
             }
         }
     }
