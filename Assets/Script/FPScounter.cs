@@ -15,7 +15,7 @@ public class FPScounter : MonoBehaviour {
         fpsHistoryArr = new int[updateInterval];
         currentFrameCount = updateInterval;
         QualitySettings.vSyncCount = 0;
-        Application.targetFrameRate = 10000;
+        Application.targetFrameRate = 150;
     }
     // Update is called once per frame
     void Update() {

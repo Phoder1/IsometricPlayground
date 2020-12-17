@@ -25,7 +25,8 @@ public class TileScript : MonoBehaviour
     }
 
     private void MoveToPosition() {
-        Vector3 realPosition = gridManagerRef.GridToWorldPosition((Vector3Int)position + new Vector3Int(1, 1, 0));
+        //Vector3 realPosition = gridManagerRef.GridToWorldPosition((Vector3Int)position + new Vector3Int(1, 1, 0));
+        Vector3 realPosition = gridManagerRef.GridToWorldPosition(position);
         realPosition.z = 2;
         transform.position = realPosition;
     }
