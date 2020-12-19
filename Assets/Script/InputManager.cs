@@ -1,11 +1,10 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.Tilemaps;
 
 
 public class InputManager : MonoBehaviour
 {
+
     [SerializeField]
     Grid grid;
     [SerializeField]
@@ -34,11 +33,18 @@ public class InputManager : MonoBehaviour
                 mousePos.z = 0;
                 Vector3Int position = tilemap.WorldToCell(mousePos);
                 if (tilemap.GetTile(position) != purple) {
-                    Debug.Log("Tile!");
                     tilemap.SetTile(position, purple);
                 }
-                GridManager._instance.SetTileAtPos((Vector2Int)position, BuildingTypes.Purple);
+                GridManager._instance.SetTileAtPos((Vector2Int)position, null);
             }
+        }else if (Input.GetKey(KeyCode.Mouse1)) {
+            Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+            mousePos.z = 0;
+            Vector3Int position = tilemap.WorldToCell(mousePos);
+            if (tilemap.GetTile(position) != null) {
+                tilemap.SetTile(position, null);
+            }
+            GridManager._instance.SetTileAtPos((Vector2Int)position, null);
         }
     }
 }

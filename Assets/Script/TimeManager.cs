@@ -1,13 +1,23 @@
-﻿using System.Collections.Generic;
+﻿using Assets.TimeEvents;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class TimeManager : MonoBehaviour {
-    LinkedList<TimedEventAbst> timedEventsList;
+    LinkedList<TimeEventAbst> timedEventsList;
+
+    public static TimeManager _instance;
+    private void Awake() {
+        if( _instance == null) {
+            Destroy(gameObject);
+            DontDestroyOnLoad(gameObject);
+        }else {
+            _instance = this;
+        }
+    }
     // Start is called before the first frame update
     void Start() { 
         Debug.Log("Current time: " + Time.deltaTime);
-        timedEventsList = new LinkedList<TimedEventAbst>();
-        DebugEventsOrder();
+        timedEventsList = new LinkedList<TimeEventAbst>();
     }
 
     // Update is called once per frame
@@ -21,10 +31,10 @@ public class TimeManager : MonoBehaviour {
         }
     }
 
-    public void AddEvent(TimedEventAbst timedEvent) {
+    public void AddEvent(TimeEventAbst timedEvent) {
         float eventTriggerTime = timedEvent.eventTriggerTime;
         if (timedEventsList.Count > 0 && eventTriggerTime > timedEventsList.First.Value.eventTriggerTime) {
-            LinkedListNode<TimedEventAbst> currentNode = timedEventsList.Last;
+            LinkedListNode<TimeEventAbst> currentNode = timedEventsList.Last;
             while (currentNode != timedEventsList.First && eventTriggerTime < currentNode.Value.eventTriggerTime) {
                 currentNode = currentNode.Previous;
             }
@@ -35,27 +45,13 @@ public class TimeManager : MonoBehaviour {
         }
     }
 
-
-    public void DebugEventsOrder() {
-        for (int i = 0; i < 20; i++) {
-            float time = Time.time + Random.Range(5f, 30f);
-            AddEvent(new DebugEvent() { eventTriggerTime = time });
+    public void RemoveEvent(TimeEventAbst timedEvent) {
+        LinkedListNode<TimeEventAbst> currentNode = timedEventsList.First;
+        while (currentNode.Value != timedEvent && currentNode != timedEventsList.Last) {
+            currentNode = currentNode.Next;
         }
-        LinkedListNode<TimedEventAbst> currentEvent = timedEventsList.First;
-        for (int i = 0; i < timedEventsList.Count; i++) {
-            Debug.Log("Event " + i + " time: " + currentEvent.Value.eventTriggerTime);
-            currentEvent = currentEvent.Next;
+        if(currentNode.Value == timedEvent) {
+            timedEventsList.Remove(currentNode);
         }
-    }
-}
-
-public abstract class TimedEventAbst {
-    public float eventTriggerTime;
-    public abstract void TriggerTimedEvent();
-}
-
-public class DebugEvent : TimedEventAbst {
-    public override void TriggerTimedEvent() {
-        Debug.Log("Triggered!");
     }
 }

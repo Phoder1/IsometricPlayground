@@ -1,11 +1,7 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
-public class TileScript : MonoBehaviour
+public class ObjectTileScript: MonoBehaviour
 {
-    [SerializeField]
-    BuildingTypes buildingType;
 
     [SerializeField]
     Vector2Int position;

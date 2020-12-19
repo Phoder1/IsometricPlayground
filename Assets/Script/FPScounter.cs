@@ -20,7 +20,7 @@ public class FPScounter : MonoBehaviour {
     // Update is called once per frame
     void Update() {
         if (currentFrameCount > 0) {
-            fpsHistoryArr[currentFrameCount - 1] = Mathf.RoundToInt(1 / Time.unscaledDeltaTime);
+            fpsHistoryArr[currentFrameCount - 1] = Mathf.RoundToInt(1 / Time.deltaTime);
             currentFrameCount--;
         }
         else {

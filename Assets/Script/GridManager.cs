@@ -1,41 +1,34 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
-public enum BuildingTypes { Purple, Flower, Tree }
 public enum TilemapLayers { Floor, Elevated, Buildings, Overlay }
 public class GridManager : MonoBehaviour {
     //Debug Variables (Disable when not needed):
-    private static List<Vector2Int> chunksDebugList = new List<Vector2Int>();
+
     private void OnDrawGizmos() {
-        foreach (Vector2Int chunkStartCorner in chunksDebugList) {
-            Vector2Int maxCorner = chunkStartCorner + Vector2Int.one * 16;
-            Vector3 leftCorner = GridToWorldPosition(Vector2Int.RoundToInt(new Vector2(chunkStartCorner.x, maxCorner.y)));
-            Vector3 rightCorner = GridToWorldPosition(Vector2Int.RoundToInt(new Vector2(maxCorner.x, chunkStartCorner.y)));
+        foreach (ChunksGrid.Chunk chunk in chunksGrid.chunksDict.Values) {
+            Vector2Int minCorner = chunk.gridStartPos;
+            Vector2Int maxCorner = minCorner + Vector2Int.one * 16;
+            Vector3 leftCorner = GridToWorldPosition(Vector2Int.RoundToInt(new Vector2(minCorner.x, maxCorner.y)));
+            Vector3 rightCorner = GridToWorldPosition(Vector2Int.RoundToInt(new Vector2(maxCorner.x, minCorner.y)));
             Vector3 topCorner = GridToWorldPosition(maxCorner);
-            Vector3 bottomCorner = GridToWorldPosition(chunkStartCorner);
+            Vector3 bottomCorner = GridToWorldPosition(minCorner);
             //Debug.Log("Origin: Min:" + chunkStartCorner + ", Max:" + maxCorner + ", Real: Bottom:" + bottomCorner + ", Top:" + topCorner + "Left:" + leftCorner + ", Right:" + rightCorner);
-            Gizmos.DrawLine(bottomCorner,leftCorner);
-            Gizmos.DrawLine(bottomCorner,rightCorner);
+            Gizmos.DrawLine(bottomCorner, leftCorner);
+            Gizmos.DrawLine(bottomCorner, rightCorner);
             Gizmos.DrawLine(leftCorner, topCorner);
             Gizmos.DrawLine(rightCorner, topCorner);
         }
     }
 
 
+    [SerializeField]
+    private Grid grid;
+    [SerializeField]
+    private Tilemap[] tilemapLayersArr;
 
-    [SerializeField]
-    Grid grid;
-    [SerializeField]
-    Tilemap floor;
-    [SerializeField]
-    Tilemap elevated;
-    [SerializeField]
-    Tilemap buildings;
-    [SerializeField]
-    Tilemap overlay;
-
+    private Tiles tiles = Tiles._instance;
 
     public static GridManager _instance;
 
@@ -49,19 +42,20 @@ public class GridManager : MonoBehaviour {
         }
     }
 
-    public Vector3 GridToWorldPosition(Vector2Int position) => grid.CellToWorld((Vector3Int)position);
-    public BuildingTypes GetTileAtPos(Vector2Int gridPos) => chunksGrid.GetTileAtGridPos(gridPos);
-    public void SetTileAtPos(Vector2Int gridPos, BuildingTypes tile) {
-        chunksGrid.SetTileAtGridPos(gridPos, tile);
+    public void SetTile(Vector2Int gridPosition, TilemapLayers layer, TileBase tile) {
 
     }
+
+    public Vector3 GridToWorldPosition(Vector2Int gridPosition) => grid.CellToWorld((Vector3Int)gridPosition);
+    public TileInterface GetTileAtPos(Vector2Int gridPosition) => chunksGrid.GetTile(gridPosition);
+    public void SetTileAtPos(Vector2Int gridPosition, TileInterface tile) => chunksGrid.SetTile(gridPosition, tile);
 
     private class ChunksGrid {
 
         private const int chunkSize = 16;
 
         //Chunks Dictionary by chunk cordinates
-        private Dictionary<Vector2Int, Chunk> chunksDict;
+        internal Dictionary<Vector2Int, Chunk> chunksDict;
 
         //Singleton
         private static ChunksGrid _instance;
@@ -77,39 +71,86 @@ public class GridManager : MonoBehaviour {
         //Initializer
         private ChunksGrid() => chunksDict = new Dictionary<Vector2Int, Chunk>();
 
-        internal BuildingTypes GetTileAtGridPos(Vector2Int position)
-            => GetChunkAtPos(position).GetTileAtGridPos(position);
-        internal void SetTileAtGridPos(Vector2Int position, BuildingTypes tile)
-            => GetChunkAtPos(position).SetTileAtGridPos(position, tile);
-        private Chunk GetChunkAtPos(Vector2Int position) {
-            position = new Vector2Int(Mathf.FloorToInt((float)position.x / chunkSize) * chunkSize, Mathf.FloorToInt((float)position.y / chunkSize) * chunkSize );
-            Debug.Log(position);
-            Debug.Log(Mathf.FloorToInt(Mathf.Floor(position.x / chunkSize) * chunkSize));
-            Chunk chunk;
-            if (!chunksDict.TryGetValue(position, out chunk)) {
-                chunk = new Chunk(position);
-                chunksDict.Add(position, chunk);
+        /// <param name="gridPosition">
+        /// A Vector2Int position on the grid.
+        /// </param>
+        internal TileInterface GetTile(Vector2Int gridPosition) {
+            if (TryGetChunk(GridToChunkPosition(gridPosition), out Chunk chunk)) {
+                return chunk.GetTile(gridPosition);
             }
+            else {
+                return null;
+            }
+        }
+
+        /// <param name="gridPosition">
+        /// A Vector2Int position on the grid.
+        /// </param>
+        internal void SetTile(Vector2Int gridPosition, TileInterface tile) {
+            Vector2Int chunkPos = GridToChunkPosition(gridPosition);
+            if (TryGetChunk(chunkPos, out Chunk chunk)) {
+                chunk.SetTile(gridPosition, tile);
+            }
+            else if (tile != null) {
+                CreateChunk(chunkPos).SetTile(gridPosition, tile);
+            }
+        }
+
+        /// <summary>Returns whether the chunk exists, and if it does, sent to out.</summary>
+        /// <param name="chunkPosition">
+        /// A Vector2Int position of the chunk.
+        /// </param>
+        private bool TryGetChunk(Vector2Int chunkPosition, out Chunk chunk)
+            => chunksDict.TryGetValue(chunkPosition, out chunk);
+
+        /// <param name="gridPosition">
+        /// A Vector2Int position of the chunk.
+        /// </param>
+        private Chunk CreateChunk(Vector2Int chunkPosition) {
+            Chunk chunk = new Chunk(chunkPosition);
+            chunksDict.Add(chunkPosition, chunk);
             return chunk;
         }
-        internal struct Chunk {
-            private BuildingTypes[,] chunkArr;
-            private Vector2Int gridStartPos;
-            private Vector2Int gridEndPos;
+
+
+        /// <param name="gridPosition">
+        /// A Vector2Int position on the grid.
+        /// </param>
+        private Vector2Int GridToChunkPosition(Vector2Int gridPosition)
+            => new Vector2Int(Mathf.FloorToInt((float)gridPosition.x / chunkSize) * chunkSize, Mathf.FloorToInt((float)gridPosition.y / chunkSize) * chunkSize);
+
+        internal class Chunk {
+            private TileInterface[,] chunkArr;
+            internal readonly Vector2Int gridStartPos;
+            private int tileCount = 0;
+            private Vector2Int GridEndPos => gridStartPos + Vector2Int.one * chunkSize;
             public Chunk(Vector2Int StartPos) {
                 gridStartPos = StartPos;
-                gridEndPos = gridStartPos + Vector2Int.one * chunkSize;
-                chunkArr = new BuildingTypes[chunkSize, chunkSize];
-                chunksDebugList.Add( gridStartPos );
-                Debug.Log("Min: " + gridStartPos + ", Max: " + gridEndPos);
+                chunkArr = new TileInterface[chunkSize, chunkSize];
             }
-            internal BuildingTypes GetTileAtGridPos(Vector2Int position)
-                => chunkArr[position.x - gridStartPos.x, position.y - gridStartPos.y];
 
-            internal void SetTileAtGridPos(Vector2Int position, BuildingTypes tile) {
-                chunkArr[Mathf.Abs( position.x - gridStartPos.x), Mathf.Abs(position.y - gridStartPos.y)] = tile;
+            /// <param name="gridPosition">
+            /// A Vector2Int position on the grid.
+            /// </param>
+            internal TileInterface GetTile(Vector2Int gridPosition)
+                => chunkArr[gridPosition.x - gridStartPos.x, gridPosition.y - gridStartPos.y];
+
+            /// <param name="gridPosition">
+            /// A Vector2Int position on the grid.
+            /// </param>
+            internal void SetTile(Vector2Int gridPosition, TileInterface tile) {
+                Vector2Int chunkPos = gridPosition - gridStartPos;
+                if (chunkArr[chunkPos.x, chunkPos.y] == null && tile != null) { tileCount++; }
+                else if (chunkArr[chunkPos.x, chunkPos.y] != null && tile == null) {
+                    tileCount--;
+                    if (tileCount == 0) {
+                        _getInstance.chunksDict.Remove(gridStartPos);
+                    }
+                }
+                chunkArr[chunkPos.x, chunkPos.y] = tile;
+                if (tile != null) {
+                }
             }
-                
         }
     }
 
